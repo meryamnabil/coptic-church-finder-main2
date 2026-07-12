@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/church_provider.dart';
 import '../providers/location_provider.dart';
@@ -36,7 +37,6 @@ class _MapScreenState extends State<MapScreen>
   String _searchQuery = '';
   bool _isSearchFocused = false;
   bool _isLoading = true;
-  Set<Marker> _cachedMarkers = {};
 
   // ─── Lifecycle ────────────────────────────────────────────────
   @override
@@ -121,14 +121,22 @@ class _MapScreenState extends State<MapScreen>
 
   String _formatDistance(double? meters) {
     if (meters == null) return '';
-    if (meters < 1000) return '${meters.toStringAsFixed(0)} م';
-    return '${(meters / 1000).toStringAsFixed(1)} كم';
+    if (meters < 1000) return '${meters.toStringAsFixed(0)} m';
+    return '${(meters / 1000).toStringAsFixed(1)} km';
+  }
+
+  // Estimated travel time assuming an average in-city speed
+  String _estimateDuration(double? meters) {
+    if (meters == null) return '';
+    const speedMps = 8.33; // 8.33 meters per second
+    double minutes = (meters / speedMps) / 60;
+    if (minutes < 1) return '1 min';
+    return '${minutes.round()} min';
   }
 
   double? _distanceTo(dynamic church, locationProvider) {
     final pos = locationProvider.currentPosition;
     if (pos == null) return null;
-    // Haversine approximation (fast)
     const R = 6371000.0;
     final dLat = _degToRad(church.latitude - pos.latitude);
     final dLon = _degToRad(church.longitude - pos.longitude);
@@ -142,6 +150,32 @@ class _MapScreenState extends State<MapScreen>
   }
 
   double _degToRad(double deg) => deg * math.pi / 180;
+
+  // Small chip widget used to show distance / estimated time
+  Widget _distanceChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: lightGold.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: darkGold),
+          const SizedBox(width: 3),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 11,
+              color: darkGold,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   // ─── Navigation ───────────────────────────────────────────────
   void _goToMyLocation(LocationProvider locationProvider) {
@@ -170,6 +204,37 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
+  // فتح تطبيق خرائط جوجل الحقيقي مع مسار من موقع المستخدم للكنيسة
+  Future<void> _openDirections(
+    dynamic church,
+    LocationProvider locationProvider,
+  ) async {
+    final pos = locationProvider.currentPosition;
+    final destLat = church.latitude;
+    final destLng = church.longitude;
+
+    final String url;
+    if (pos != null) {
+      url =
+          'https://www.google.com/maps/dir/?api=1&origin=${pos.latitude},${pos.longitude}&destination=$destLat,$destLng&travelmode=driving';
+    } else {
+      url =
+          'https://www.google.com/maps/dir/?api=1&destination=$destLat,$destLng&travelmode=driving';
+    }
+
+    final uri = Uri.parse(url);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open the maps application'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   // ─── Markers ──────────────────────────────────────────────────
   Set<Marker> _buildMarkers(
     ChurchProvider churchProvider,
@@ -187,7 +252,7 @@ class _MapScreenState extends State<MapScreen>
           position: LatLng(church.latitude, church.longitude),
           infoWindow: InfoWindow(
             title: church.name,
-            snippet: isNearest ? '⭐ أقرب كنيسة' : church.address,
+            snippet: isNearest ? '⭐ Nearest church' : church.address,
           ),
           icon:
               isNearest
@@ -195,7 +260,7 @@ class _MapScreenState extends State<MapScreen>
                     BitmapDescriptor.hueGreen,
                   )
                   : isSelected
-                  ? BitmapDescriptor.defaultMarkerWithHue(50) // gold
+                  ? BitmapDescriptor.defaultMarkerWithHue(50)
                   : BitmapDescriptor.defaultMarkerWithHue(
                     BitmapDescriptor.hueOrange,
                   ),
@@ -216,7 +281,7 @@ class _MapScreenState extends State<MapScreen>
         Marker(
           markerId: const MarkerId('user'),
           position: LatLng(pos.latitude, pos.longitude),
-          infoWindow: const InfoWindow(title: 'موقعك الحالي'),
+          infoWindow: const InfoWindow(title: 'Your current location'),
           icon: BitmapDescriptor.defaultMarkerWithHue(
             BitmapDescriptor.hueAzure,
           ),
@@ -238,7 +303,18 @@ class _MapScreenState extends State<MapScreen>
             pos == null
                 ? _defaultPosition
                 : LatLng(pos.latitude, pos.longitude);
+
+        // Get search results and filter them
         final filtered = _filteredChurches(churchProvider.churches);
+
+        // Auto-sort from nearest to farthest based on the user's current location
+        if (pos != null) {
+          filtered.sort((a, b) {
+            final distA = _distanceTo(a, locationProvider) ?? double.infinity;
+            final distB = _distanceTo(b, locationProvider) ?? double.infinity;
+            return distA.compareTo(distB);
+          });
+        }
 
         return Scaffold(
           backgroundColor: surfaceColor,
@@ -357,7 +433,7 @@ class _MapScreenState extends State<MapScreen>
                   fontWeight: FontWeight.w500,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'ابحث عن كنيسة...',
+                  hintText: 'Search for a church...',
                   hintStyle: TextStyle(
                     color: Colors.grey.shade400,
                     fontSize: 14,
@@ -417,7 +493,7 @@ class _MapScreenState extends State<MapScreen>
                     ? const Padding(
                       padding: EdgeInsets.all(20),
                       child: Text(
-                        'لا توجد نتائج',
+                        'No results found',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.grey),
                       ),
@@ -492,13 +568,13 @@ class _MapScreenState extends State<MapScreen>
           children: [
             _premiumFAB(
               icon: Icons.my_location,
-              tooltip: 'موقعي',
+              tooltip: 'My Location',
               onTap: () => _goToMyLocation(locationProvider),
             ),
             const SizedBox(height: 10),
             _premiumFAB(
               icon: Icons.near_me,
-              tooltip: 'أقرب كنيسة',
+              tooltip: 'Nearest Church',
               onTap: () => _goToNearest(churchProvider),
               color: primaryGold,
               iconColor: Colors.white,
@@ -570,7 +646,7 @@ class _MapScreenState extends State<MapScreen>
             children: [
               _buildSheetHandle(),
 
-              // Selected Church Card
+              // Updated selected church card showing distance and ETA
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 transitionBuilder:
@@ -595,7 +671,7 @@ class _MapScreenState extends State<MapScreen>
                 const Divider(indent: 20, endIndent: 20),
               ],
 
-              // List Header
+              // Nearby churches title
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -605,7 +681,7 @@ class _MapScreenState extends State<MapScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'كنائس قريبة (${filtered.length})',
+                      'Nearby Churches (${filtered.length})',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
@@ -613,7 +689,7 @@ class _MapScreenState extends State<MapScreen>
                       ),
                     ),
                     Text(
-                      'مرتّبة بالأقرب',
+                      'Sorted by nearest',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey.shade500,
@@ -623,7 +699,7 @@ class _MapScreenState extends State<MapScreen>
                 ),
               ),
 
-              // Church List
+              // Updated, sorted list with distance chips
               if (filtered.isEmpty)
                 _buildEmptyState()
               else
@@ -672,7 +748,6 @@ class _MapScreenState extends State<MapScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Church Image
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
             child:
@@ -687,7 +762,6 @@ class _MapScreenState extends State<MapScreen>
                     : _imagePlaceholder(160),
           ),
 
-          // Info
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Column(
@@ -707,35 +781,20 @@ class _MapScreenState extends State<MapScreen>
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    // Show distance and ETA immediately
                     if (dist != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: lightGold,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.location_on,
-                              size: 12,
-                              color: darkGold,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              _formatDistance(dist),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: darkGold,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
+                      Row(
+                        children: [
+                          _distanceChip(
+                            Icons.location_on,
+                            _formatDistance(dist),
+                          ),
+                          const SizedBox(width: 4),
+                          _distanceChip(
+                            Icons.directions_car,
+                            _estimateDuration(dist),
+                          ),
+                        ],
                       ),
                   ],
                 ),
@@ -776,29 +835,36 @@ class _MapScreenState extends State<MapScreen>
                 ],
                 const SizedBox(height: 14),
 
-                // Action Buttons
+                // Action buttons: Directions, Favorite, Call, Details
                 Row(
                   children: [
                     _actionBtn(
                       Icons.directions,
-                      'توجيه',
+                      'Directions',
                       primaryGold,
                       Colors.white,
                       filled: true,
-                      onTap: () {},
+                      onTap: () => _openDirections(church, locationProvider),
                     ),
                     const SizedBox(width: 8),
-                    _actionBtn(
-                      Icons.favorite_border,
-                      'مفضلة',
-                      Colors.grey.shade200,
-                      Colors.grey.shade700,
-                      onTap: () {},
+                    Consumer<ChurchProvider>(
+                      builder: (context, churchProvider, _) {
+                        final isFav = churchProvider.isFavorite(church.id);
+                        return _actionBtn(
+                          isFav ? Icons.favorite : Icons.favorite_border,
+                          'Favorite',
+                          isFav
+                              ? primaryGold.withOpacity(.15)
+                              : Colors.grey.shade200,
+                          isFav ? primaryGold : Colors.grey.shade700,
+                          onTap: () => churchProvider.toggleFavorite(church.id),
+                        );
+                      },
                     ),
                     const SizedBox(width: 8),
                     _actionBtn(
                       Icons.call_outlined,
-                      'اتصال',
+                      'Call',
                       Colors.grey.shade200,
                       Colors.grey.shade700,
                       onTap: () {},
@@ -806,7 +872,7 @@ class _MapScreenState extends State<MapScreen>
                     const SizedBox(width: 8),
                     _actionBtn(
                       Icons.info_outline,
-                      'تفاصيل',
+                      'Details',
                       Colors.grey.shade200,
                       Colors.grey.shade700,
                       onTap: () {},
@@ -889,7 +955,6 @@ class _MapScreenState extends State<MapScreen>
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Thumbnail
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child:
@@ -906,7 +971,6 @@ class _MapScreenState extends State<MapScreen>
               ),
               const SizedBox(width: 12),
 
-              // Info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -934,19 +998,14 @@ class _MapScreenState extends State<MapScreen>
                       const SizedBox(height: 5),
                       Row(
                         children: [
-                          const Icon(
+                          _distanceChip(
                             Icons.location_on,
-                            size: 11,
-                            color: primaryGold,
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
                             _formatDistance(dist),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: primaryGold,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          _distanceChip(
+                            Icons.directions_car,
+                            _estimateDuration(dist),
                           ),
                         ],
                       ),
@@ -955,13 +1014,20 @@ class _MapScreenState extends State<MapScreen>
                 ),
               ),
 
-              // Trailing
               Column(
                 children: [
-                  Icon(
-                    Icons.favorite_border,
-                    size: 18,
-                    color: Colors.grey.shade400,
+                  Consumer<ChurchProvider>(
+                    builder: (context, churchProvider, _) {
+                      final isFav = churchProvider.isFavorite(church.id);
+                      return GestureDetector(
+                        onTap: () => churchProvider.toggleFavorite(church.id),
+                        child: Icon(
+                          isFav ? Icons.favorite : Icons.favorite_border,
+                          size: 18,
+                          color: isFav ? primaryGold : Colors.grey.shade400,
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 8),
                   Icon(
@@ -987,7 +1053,7 @@ class _MapScreenState extends State<MapScreen>
           Icon(Icons.church_outlined, size: 64, color: Colors.grey.shade300),
           const SizedBox(height: 16),
           const Text(
-            'لا توجد كنائس',
+            'No churches found',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -996,7 +1062,7 @@ class _MapScreenState extends State<MapScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'جرّب البحث بكلمة مختلفة',
+            'Try searching with different keywords',
             style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
           ),
         ],
