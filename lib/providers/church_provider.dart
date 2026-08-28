@@ -12,9 +12,9 @@ class ChurchProvider with ChangeNotifier {
   Future<void>? _loadFuture;
   Church? nearestChurch;
 
-  // ─── Favorites ────────────────────────────────────────────────
   final Set<String> _favoriteIds = {};
   static const String _favoritesKey = 'favorite_church_ids';
+  static const String _addedChurchesKey = 'added_churches';
 
   List<Church> get churches => _churches;
 
@@ -31,11 +31,41 @@ class ChurchProvider with ChangeNotifier {
     final jsonString = await rootBundle.loadString('assets/data/churches.json');
     final jsonList = jsonDecode(jsonString) as List<dynamic>;
 
-    _churches = jsonList
-        .map((json) => Church.fromJson(json as Map<String, dynamic>))
-        .toList(growable: false);
+    _churches =
+        jsonList
+            .map((json) => Church.fromJson(json as Map<String, dynamic>))
+            .toList();
 
+    await _loadAddedChurches();
     await _loadFavorites();
+
+    notifyListeners();
+  }
+
+  Future<void> _loadAddedChurches() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedChurches = prefs.getStringList(_addedChurchesKey) ?? [];
+
+    final addedChurches =
+        savedChurches
+            .map(
+              (json) =>
+                  Church.fromJson(jsonDecode(json) as Map<String, dynamic>),
+            )
+            .toList();
+
+    _churches.addAll(addedChurches);
+  }
+
+  Future<void> addChurch(Church church) async {
+    _churches.add(church);
+
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getStringList(_addedChurchesKey) ?? [];
+
+    existing.add(jsonEncode(church.toJson()));
+    await prefs.setStringList(_addedChurchesKey, existing);
+
     notifyListeners();
   }
 

@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-
+import 'package:geolocator/geolocator.dart';
 import '../providers/church_provider.dart';
 import '../providers/location_provider.dart';
+import '../models/church_model.dart';
 
-// ─── Theme Colors ────────────────────────────────────────────────
 const Color primaryGold = Color(0xFFB8965E);
 const Color darkGold = Color(0xFF8C6A3E);
 const Color lightGold = Color(0xFFF5E6D3);
@@ -15,7 +15,9 @@ const Color surfaceColor = Color(0xFFFAFAFA);
 const Color cardShadow = Color(0x1A000000);
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key});
+  final Church? selectedChurch;
+
+  const MapScreen({super.key, this.selectedChurch});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -23,7 +25,6 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen>
     with SingleTickerProviderStateMixin {
-  // ─── Controllers ──────────────────────────────────────────────
   GoogleMapController? _mapController;
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
@@ -31,14 +32,12 @@ class _MapScreenState extends State<MapScreen>
   late AnimationController _fabAnimController;
   late Animation<double> _fabScaleAnim;
 
-  // ─── State ────────────────────────────────────────────────────
   static const LatLng _defaultPosition = LatLng(30.0444, 31.2357);
   dynamic _selectedChurch;
   String _searchQuery = '';
   bool _isSearchFocused = false;
   bool _isLoading = true;
 
-  // ─── Lifecycle ────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
@@ -62,38 +61,49 @@ class _MapScreenState extends State<MapScreen>
     super.dispose();
   }
 
-  // ─── Init ─────────────────────────────────────────────────────
   Future<void> _initializeMap() async {
     final churchProvider = context.read<ChurchProvider>();
     final locationProvider = context.read<LocationProvider>();
 
     await churchProvider.loadChurches();
-    final locationAvailable = await locationProvider.getCurrentLocation();
+    await locationProvider.getCurrentLocation();
 
     if (!mounted) return;
 
     final position = locationProvider.currentPosition;
-    if (locationAvailable && position != null) {
+    if (locationProvider.status == LocationStatus.success && position != null) {
       churchProvider.calculateNearestChurch(
         position.latitude,
         position.longitude,
       );
       setState(() {
-        _selectedChurch = churchProvider.nearestChurch;
+        _selectedChurch = widget.selectedChurch ?? churchProvider.nearestChurch;
         _isLoading = false;
       });
-      await _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          LatLng(position.latitude, position.longitude),
-          15,
-        ),
-      );
+      if (widget.selectedChurch != null) {
+        await _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(
+            LatLng(
+              widget.selectedChurch!.latitude,
+              widget.selectedChurch!.longitude,
+            ),
+            16,
+          ),
+        );
+      } else {
+        await _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(
+            LatLng(position.latitude, position.longitude),
+            15,
+          ),
+        );
+      }
     } else {
       setState(() => _isLoading = false);
-      if (locationProvider.errorMessage != null && mounted) {
+      if (locationProvider.errorMessage.isNotEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(locationProvider.errorMessage!),
+            content: Text(locationProvider.errorMessage),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -106,7 +116,6 @@ class _MapScreenState extends State<MapScreen>
     _fabAnimController.forward();
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────
   List _filteredChurches(List churches) {
     if (_searchQuery.isEmpty) return churches;
     final q = _searchQuery.toLowerCase();
@@ -121,37 +130,31 @@ class _MapScreenState extends State<MapScreen>
 
   String _formatDistance(double? meters) {
     if (meters == null) return '';
-    if (meters < 1000) return '${meters.toStringAsFixed(0)} m';
-    return '${(meters / 1000).toStringAsFixed(1)} km';
+    if (meters < 1000) return '${meters.toStringAsFixed(0)} م';
+    return '${(meters / 1000).toStringAsFixed(1)} كم';
   }
 
-  // Estimated travel time assuming an average in-city speed
   String _estimateDuration(double? meters) {
     if (meters == null) return '';
-    const speedMps = 8.33; // 8.33 meters per second
+    const speedMps = 8.33;
     double minutes = (meters / speedMps) / 60;
-    if (minutes < 1) return '1 min';
-    return '${minutes.round()} min';
+    if (minutes < 1) return 'دقيقة';
+    return '${minutes.round()} د';
   }
 
   double? _distanceTo(dynamic church, locationProvider) {
     final pos = locationProvider.currentPosition;
     if (pos == null) return null;
-    const R = 6371000.0;
-    final dLat = _degToRad(church.latitude - pos.latitude);
-    final dLon = _degToRad(church.longitude - pos.longitude);
-    final a =
-        math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_degToRad(pos.latitude)) *
-            math.cos(_degToRad(church.latitude)) *
-            math.sin(dLon / 2) *
-            math.sin(dLon / 2);
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return Geolocator.distanceBetween(
+      pos.latitude,
+      pos.longitude,
+      church.latitude,
+      church.longitude,
+    );
   }
 
   double _degToRad(double deg) => deg * math.pi / 180;
 
-  // Small chip widget used to show distance / estimated time
   Widget _distanceChip(IconData icon, String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -177,7 +180,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  // ─── Navigation ───────────────────────────────────────────────
   void _goToMyLocation(LocationProvider locationProvider) {
     final pos = locationProvider.currentPosition;
     if (pos == null) return;
@@ -204,7 +206,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  // فتح تطبيق خرائط جوجل الحقيقي مع مسار من موقع المستخدم للكنيسة
   Future<void> _openDirections(
     dynamic church,
     LocationProvider locationProvider,
@@ -228,14 +229,13 @@ class _MapScreenState extends State<MapScreen>
     if (!launched && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Could not open the maps application'),
+          content: Text('مقدرناش نفتح تطبيق الخرائط'),
           behavior: SnackBarBehavior.floating,
         ),
       );
     }
   }
 
-  // ─── Markers ──────────────────────────────────────────────────
   Set<Marker> _buildMarkers(
     ChurchProvider churchProvider,
     LocationProvider locationProvider,
@@ -252,7 +252,7 @@ class _MapScreenState extends State<MapScreen>
           position: LatLng(church.latitude, church.longitude),
           infoWindow: InfoWindow(
             title: church.name,
-            snippet: isNearest ? '⭐ Nearest church' : church.address,
+            snippet: isNearest ? '⭐ أقرب كنيسة' : church.address,
           ),
           icon:
               isNearest
@@ -281,7 +281,7 @@ class _MapScreenState extends State<MapScreen>
         Marker(
           markerId: const MarkerId('user'),
           position: LatLng(pos.latitude, pos.longitude),
-          infoWindow: const InfoWindow(title: 'Your current location'),
+          infoWindow: const InfoWindow(title: 'موقعك الحالي'),
           icon: BitmapDescriptor.defaultMarkerWithHue(
             BitmapDescriptor.hueAzure,
           ),
@@ -293,7 +293,6 @@ class _MapScreenState extends State<MapScreen>
     return markers;
   }
 
-  // ─── Build ────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Consumer2<ChurchProvider, LocationProvider>(
@@ -304,10 +303,8 @@ class _MapScreenState extends State<MapScreen>
                 ? _defaultPosition
                 : LatLng(pos.latitude, pos.longitude);
 
-        // Get search results and filter them
         final filtered = _filteredChurches(churchProvider.churches);
 
-        // Auto-sort from nearest to farthest based on the user's current location
         if (pos != null) {
           filtered.sort((a, b) {
             final distA = _distanceTo(a, locationProvider) ?? double.infinity;
@@ -320,23 +317,12 @@ class _MapScreenState extends State<MapScreen>
           backgroundColor: surfaceColor,
           body: Stack(
             children: [
-              // ── Map ─────────────────────────────────────────
               _buildMap(churchProvider, locationProvider, currentPos),
-
-              // ── Search Bar ──────────────────────────────────
               _buildSearchBar(churchProvider, filtered),
-
-              // ── FABs ────────────────────────────────────────
               _buildFABs(churchProvider, locationProvider),
-
-              // ── Search Results Dropdown ──────────────────────
               if (_searchQuery.isNotEmpty && _isSearchFocused)
                 _buildSearchDropdown(filtered),
-
-              // ── Bottom Sheet ─────────────────────────────────
               _buildBottomSheet(filtered, locationProvider, churchProvider),
-
-              // ── Loading Overlay ──────────────────────────────
               if (_isLoading) _buildSkeletonLoader(),
             ],
           ),
@@ -345,7 +331,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  // ─── Map Widget ───────────────────────────────────────────────
   Widget _buildMap(
     ChurchProvider churchProvider,
     LocationProvider locationProvider,
@@ -361,7 +346,18 @@ class _MapScreenState extends State<MapScreen>
       initialCameraPosition: CameraPosition(target: currentPos, zoom: 13),
       onMapCreated: (c) {
         _mapController = c;
-        if (locationProvider.currentPosition != null) {
+
+        if (widget.selectedChurch != null) {
+          c.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              LatLng(
+                widget.selectedChurch!.latitude,
+                widget.selectedChurch!.longitude,
+              ),
+              16,
+            ),
+          );
+        } else if (locationProvider.currentPosition != null) {
           c.animateCamera(CameraUpdate.newLatLngZoom(currentPos, 15));
         }
       },
@@ -373,7 +369,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  // ─── Search Bar ───────────────────────────────────────────────
   Widget _buildSearchBar(ChurchProvider churchProvider, List filtered) {
     return Positioned(
       top: MediaQuery.of(context).padding.top + 8,
@@ -433,7 +428,7 @@ class _MapScreenState extends State<MapScreen>
                   fontWeight: FontWeight.w500,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Search for a church...',
+                  hintText: 'دور على كنيسة...',
                   hintStyle: TextStyle(
                     color: Colors.grey.shade400,
                     fontSize: 14,
@@ -472,7 +467,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  // ─── Search Dropdown ──────────────────────────────────────────
   Widget _buildSearchDropdown(List filtered) {
     final topPadding = MediaQuery.of(context).padding.top + 70;
     return Positioned(
@@ -493,7 +487,7 @@ class _MapScreenState extends State<MapScreen>
                     ? const Padding(
                       padding: EdgeInsets.all(20),
                       child: Text(
-                        'No results found',
+                        'مفيش نتايج',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.grey),
                       ),
@@ -554,7 +548,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  // ─── FABs ─────────────────────────────────────────────────────
   Widget _buildFABs(
     ChurchProvider churchProvider,
     LocationProvider locationProvider,
@@ -568,13 +561,13 @@ class _MapScreenState extends State<MapScreen>
           children: [
             _premiumFAB(
               icon: Icons.my_location,
-              tooltip: 'My Location',
+              tooltip: 'موقعي',
               onTap: () => _goToMyLocation(locationProvider),
             ),
             const SizedBox(height: 10),
             _premiumFAB(
               icon: Icons.near_me,
-              tooltip: 'Nearest Church',
+              tooltip: 'أقرب كنيسة',
               onTap: () => _goToNearest(churchProvider),
               color: primaryGold,
               iconColor: Colors.white,
@@ -616,7 +609,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  // ─── Bottom Sheet ─────────────────────────────────────────────
   Widget _buildBottomSheet(
     List filtered,
     LocationProvider locationProvider,
@@ -645,8 +637,6 @@ class _MapScreenState extends State<MapScreen>
             padding: EdgeInsets.zero,
             children: [
               _buildSheetHandle(),
-
-              // Updated selected church card showing distance and ETA
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 transitionBuilder:
@@ -671,7 +661,6 @@ class _MapScreenState extends State<MapScreen>
                 const Divider(indent: 20, endIndent: 20),
               ],
 
-              // Nearby churches title
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -681,7 +670,7 @@ class _MapScreenState extends State<MapScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Nearby Churches (${filtered.length})',
+                      'الكنايس القريبة (${filtered.length})',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
@@ -689,7 +678,7 @@ class _MapScreenState extends State<MapScreen>
                       ),
                     ),
                     Text(
-                      'Sorted by nearest',
+                      'مرتبة حسب الأقرب',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey.shade500,
@@ -699,7 +688,6 @@ class _MapScreenState extends State<MapScreen>
                 ),
               ),
 
-              // Updated, sorted list with distance chips
               if (filtered.isEmpty)
                 _buildEmptyState()
               else
@@ -731,7 +719,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  // ─── Selected Church Card ─────────────────────────────────────
   Widget _buildSelectedCard(dynamic church, LocationProvider locationProvider) {
     final dist = _distanceTo(church, locationProvider);
     return Container(
@@ -781,7 +768,6 @@ class _MapScreenState extends State<MapScreen>
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    // Show distance and ETA immediately
                     if (dist != null)
                       Row(
                         children: [
@@ -835,12 +821,11 @@ class _MapScreenState extends State<MapScreen>
                 ],
                 const SizedBox(height: 14),
 
-                // Action buttons: Directions, Favorite, Call, Details
                 Row(
                   children: [
                     _actionBtn(
                       Icons.directions,
-                      'Directions',
+                      'الاتجاهات',
                       primaryGold,
                       Colors.white,
                       filled: true,
@@ -852,7 +837,7 @@ class _MapScreenState extends State<MapScreen>
                         final isFav = churchProvider.isFavorite(church.id);
                         return _actionBtn(
                           isFav ? Icons.favorite : Icons.favorite_border,
-                          'Favorite',
+                          'المفضلة',
                           isFav
                               ? primaryGold.withOpacity(.15)
                               : Colors.grey.shade200,
@@ -864,7 +849,7 @@ class _MapScreenState extends State<MapScreen>
                     const SizedBox(width: 8),
                     _actionBtn(
                       Icons.call_outlined,
-                      'Call',
+                      'اتصال',
                       Colors.grey.shade200,
                       Colors.grey.shade700,
                       onTap: () {},
@@ -872,7 +857,7 @@ class _MapScreenState extends State<MapScreen>
                     const SizedBox(width: 8),
                     _actionBtn(
                       Icons.info_outline,
-                      'Details',
+                      'تفاصيل',
                       Colors.grey.shade200,
                       Colors.grey.shade700,
                       onTap: () {},
@@ -925,7 +910,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  // ─── Church List Card ─────────────────────────────────────────
   Widget _buildChurchCard(dynamic church, bool isSelected, double? dist) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -1044,7 +1028,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  // ─── Empty State ──────────────────────────────────────────────
   Widget _buildEmptyState() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 40),
@@ -1053,7 +1036,7 @@ class _MapScreenState extends State<MapScreen>
           Icon(Icons.church_outlined, size: 64, color: Colors.grey.shade300),
           const SizedBox(height: 16),
           const Text(
-            'No churches found',
+            'مفيش كنايس',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1062,7 +1045,7 @@ class _MapScreenState extends State<MapScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Try searching with different keywords',
+            'جرب تدور بكلمات تانية',
             style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
           ),
         ],
@@ -1070,7 +1053,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  // ─── Skeleton Loader ──────────────────────────────────────────
   Widget _buildSkeletonLoader() {
     return Positioned(
       bottom: 0,
@@ -1119,7 +1101,6 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  // ─── Image Placeholders ───────────────────────────────────────
   Widget _imagePlaceholder(double h) {
     return Container(
       height: h,

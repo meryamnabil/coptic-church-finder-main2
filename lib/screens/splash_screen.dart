@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'home_screen.dart';
 
 const Color primaryGold = Color(0xFFB8965E);
@@ -17,6 +17,7 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController controller;
   late Animation<double> animation;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -28,10 +29,10 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     animation = CurvedAnimation(parent: controller, curve: Curves.easeIn);
-
     controller.forward();
 
-    Timer(const Duration(seconds: 4), () {
+    _timer = Timer(const Duration(seconds: 4), () {
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -41,6 +42,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
+    _timer?.cancel();
     controller.dispose();
     super.dispose();
   }
@@ -55,7 +57,6 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              /// LOGO
               Container(
                 decoration: BoxDecoration(
                   boxShadow: [
@@ -67,12 +68,9 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 child: Image.asset("assets/images/Logo.png", width: 200),
               ),
-
               const SizedBox(height: 40),
-
-              /// TITLE
               const Text(
-                "Coptic Church Finder",
+                "دليل الكنائس القبطية",
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -80,17 +78,12 @@ class _SplashScreenState extends State<SplashScreen>
                   letterSpacing: 1.2,
                 ),
               ),
-
               const SizedBox(height: 10),
-
               const Text(
-                "Find Churches Near You",
+                "اعثر على الكنائس القريبة منك",
                 style: TextStyle(fontSize: 16, color: primaryGold),
               ),
-
               const SizedBox(height: 40),
-
-              /// LOADING
               const CircularProgressIndicator(
                 color: primaryGold,
                 strokeWidth: 3,

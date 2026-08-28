@@ -2,10 +2,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/church_model.dart';
 import '../providers/church_provider.dart';
 import '../providers/location_provider.dart';
+import 'map_screen.dart';
 
-// ─── Theme Colors ────────────────────────────────────────────────
 const Color primaryGold = Color(0xFFB8965E);
 const Color darkGold = Color(0xFF8C6A3E);
 const Color lightGold = Color(0xFFF5E6D3);
@@ -18,19 +19,37 @@ class ChurchesListScreen extends StatefulWidget {
 }
 
 class _ChurchesListScreenState extends State<ChurchesListScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LocationProvider>().getCurrentLocation();
+      if (mounted) {
+        context.read<LocationProvider>().getCurrentLocation();
+      }
+    });
+
+    // التحديث الفوري للقائمة عند كتابة أي حرف
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.trim().toLowerCase();
+      });
     });
   }
 
-  double? _distanceTo(dynamic church, LocationProvider locationProvider) {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  double? _distanceTo(Church church, LocationProvider locationProvider) {
     final pos = locationProvider.currentPosition;
     if (pos == null) return null;
 
-    const R = 6371000.0;
+    const r = 6371000.0;
     final dLat = (church.latitude - pos.latitude) * math.pi / 180;
     final dLon = (church.longitude - pos.longitude) * math.pi / 180;
 
@@ -41,7 +60,7 @@ class _ChurchesListScreenState extends State<ChurchesListScreen> {
             math.sin(dLon / 2) *
             math.sin(dLon / 2);
 
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
   }
 
   String _formatDistance(double? meters) {
@@ -52,71 +71,186 @@ class _ChurchesListScreenState extends State<ChurchesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<ChurchProvider, LocationProvider>(
-      builder: (context, churchProvider, locationProvider, _) {
-        final churches = List.from(churchProvider.churches);
-
-        if (locationProvider.currentPosition != null) {
-          churches.sort((a, b) {
-            final distA = _distanceTo(a, locationProvider) ?? double.infinity;
-            final distB = _distanceTo(b, locationProvider) ?? double.infinity;
-            return distA.compareTo(distB);
-          });
-        }
-
-        return Scaffold(
-          backgroundColor: const Color(0xFFFAFAFA),
-          appBar: AppBar(
-            title: const Text(
-              "Nearest Churches",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: darkGold,
-                fontSize: 20,
-              ),
-            ),
-            centerTitle: true,
-            backgroundColor: Colors.white,
-            elevation: 0,
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(1),
-              child: Container(color: lightGold.withOpacity(0.5), height: 1),
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAFAFA),
+      appBar: AppBar(
+        title: const Text(
+          "الكنائس القريبة",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryGold, darkGold],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-          body:
-              churchProvider.churches.isEmpty
-                  ? const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation(primaryGold),
-                    ),
-                  )
-                  : ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    itemCount: churches.length,
-                    itemBuilder: (context, index) {
-                      final church = churches[index];
-                      final dist = _distanceTo(church, locationProvider);
+        ),
+      ),
+      body: Consumer2<ChurchProvider, LocationProvider>(
+        builder: (context, churchProvider, locationProvider, _) {
+          if (churchProvider.churches.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation(primaryGold),
+              ),
+            );
+          }
 
-                      return _ChurchCard(
-                        church: church,
-                        distanceString: _formatDistance(dist),
-                      );
-                    },
+          // 1. فلترة الكنائس حسب اسم الكنيسة
+          final filteredChurches =
+              churchProvider.churches.where((church) {
+                final name = church.name.toLowerCase();
+                return name.contains(_searchQuery);
+              }).toList();
+
+          // 2. حساب المسافات
+          final churchesWithDistance =
+              filteredChurches.map((church) {
+                return _ChurchDistanceItem(
+                  church: church,
+                  distance: _distanceTo(church, locationProvider),
+                );
+              }).toList();
+
+          // 3. الترتيب حسب أقرب كنيسة
+          if (locationProvider.currentPosition != null) {
+            churchesWithDistance.sort((a, b) {
+              final distA = a.distance ?? double.infinity;
+              final distB = b.distance ?? double.infinity;
+              return distA.compareTo(distB);
+            });
+          }
+
+          return Column(
+            children: [
+              // ─── Search Bar ───────────────────────────────────────────
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                color: Colors.white,
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: "ابحث باسم الكنيسة...",
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 14,
+                    ),
+                    prefixIcon: const Icon(Icons.search, color: primaryGold),
+                    suffixIcon:
+                        _searchQuery.isNotEmpty
+                            ? IconButton(
+                              icon: const Icon(
+                                Icons.clear,
+                                color: Colors.grey,
+                                size: 20,
+                              ),
+                              onPressed: () => _searchController.clear(),
+                            )
+                            : null,
+                    filled: true,
+                    fillColor: const Color(0xFFF5F5F5),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 0,
+                      horizontal: 16,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: primaryGold,
+                        width: 1.5,
+                      ),
+                    ),
                   ),
-        );
-      },
+                ),
+              ),
+
+              // ─── List of Churches ──────────────────────────────────────
+              Expanded(
+                child:
+                    churchesWithDistance.isEmpty
+                        ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 48,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "لا توجد نتائج تطابق بحثك",
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                        : ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          itemCount: churchesWithDistance.length,
+                          itemBuilder: (context, index) {
+                            final item = churchesWithDistance[index];
+                            final isFav = churchProvider.isFavorite(
+                              item.church.id,
+                            );
+
+                            return _ChurchCard(
+                              church: item.church,
+                              distanceString: _formatDistance(item.distance),
+                              isFavorite: isFav,
+                              onFavoriteToggle:
+                                  () => churchProvider.toggleFavorite(
+                                    item.church.id,
+                                  ),
+                            );
+                          },
+                        ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
 
-class _ChurchCard extends StatelessWidget {
-  final dynamic church;
-  final String distanceString;
+class _ChurchDistanceItem {
+  final Church church;
+  final double? distance;
 
-  const _ChurchCard({required this.church, required this.distanceString});
+  _ChurchDistanceItem({required this.church, required this.distance});
+}
+
+class _ChurchCard extends StatelessWidget {
+  final Church church;
+  final String distanceString;
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
+
+  const _ChurchCard({
+    required this.church,
+    required this.distanceString,
+    required this.isFavorite,
+    required this.onFavoriteToggle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +270,14 @@ class _ChurchCard extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {},
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MapScreen(selectedChurch: church),
+            ),
+          );
+        },
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -211,7 +352,14 @@ class _ChurchCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, size: 20, color: Colors.grey.shade400),
+              IconButton(
+                onPressed: onFavoriteToggle,
+                icon: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  size: 20,
+                  color: isFavorite ? primaryGold : Colors.grey.shade400,
+                ),
+              ),
             ],
           ),
         ),

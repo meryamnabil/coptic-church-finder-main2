@@ -4,79 +4,74 @@ import 'package:geolocator/geolocator.dart';
 enum LocationStatus {
   initial,
   loading,
-  ready,
+  success,
   serviceDisabled,
   permissionDenied,
   permissionDeniedForever,
-  error,
 }
 
-class LocationProvider with ChangeNotifier {
+class LocationProvider extends ChangeNotifier {
   Position? _currentPosition;
   LocationStatus _status = LocationStatus.initial;
-  String? _errorMessage;
+  String _errorMessage = '';
 
   Position? get currentPosition => _currentPosition;
   LocationStatus get status => _status;
-  String? get errorMessage => _errorMessage;
+  String get errorMessage => _errorMessage;
 
-  Future<bool> getCurrentLocation() async {
+  Future<void> getCurrentLocation() async {
     _status = LocationStatus.loading;
-    _errorMessage = null;
     notifyListeners();
 
-    try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-      if (!serviceEnabled) {
-        return _fail(
-          LocationStatus.serviceDisabled,
-          'Location services are disabled. Please enable GPS.',
-        );
-      }
-
-      var permission = await Geolocator.checkPermission();
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.denied) {
-        return _fail(
-          LocationStatus.permissionDenied,
-          'Location permission was denied.',
-        );
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        return _fail(
-          LocationStatus.permissionDeniedForever,
-          'Location permission is permanently denied. Enable it in settings.',
-        );
-      }
-
-      _currentPosition = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
-
-      _status = LocationStatus.ready;
+    // 1. التحقق من تفعيل خدمة الموقع على الجهاز
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      _status = LocationStatus.serviceDisabled;
+      _errorMessage = 'خدمة الموقع معطلة على الجهاز. يرجى تفعيلها.';
       notifyListeners();
-      return true;
-    } catch (error) {
-      return _fail(
-        LocationStatus.error,
-        'Unable to get the current location: $error',
-      );
+      return;
     }
+
+    // 2. التحقق من حالة إذن الموقع
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        _status = LocationStatus.permissionDenied;
+        _errorMessage = 'تم رفض إذن الوصول للموقع.';
+        notifyListeners();
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      _status = LocationStatus.permissionDeniedForever;
+      _errorMessage =
+          'إذن الموقع مرفوض بشكل دائم. يرجى تفعيله من إعدادات التطبيق.';
+      notifyListeners();
+      return;
+    }
+
+    // 3. الحصول على الموقع الحالي بعد التأكد من الأذونات
+    try {
+      _currentPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      _status = LocationStatus.success;
+    } catch (e) {
+      _status = LocationStatus.permissionDenied;
+      _errorMessage = 'تعذر الحصول على الموقع الحالي.';
+    }
+
+    notifyListeners();
   }
 
-  bool _fail(LocationStatus status, String message) {
-    _currentPosition = null;
-    _status = status;
-    _errorMessage = message;
-    notifyListeners();
-    return false;
+  /// فتح إعدادات التطبيق أو الجهاز مباشرة
+  Future<void> openSettings() async {
+    if (_status == LocationStatus.serviceDisabled) {
+      await Geolocator.openLocationSettings();
+    } else if (_status == LocationStatus.permissionDeniedForever) {
+      await Geolocator.openAppSettings();
+    }
   }
 }
