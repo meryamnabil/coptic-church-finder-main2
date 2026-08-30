@@ -4,7 +4,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-import '../models/church_model.dart';
 import '../providers/church_provider.dart';
 import 'select_location_screen.dart';
 
@@ -124,7 +123,7 @@ class _AddChurchScreenState extends State<AddChurchScreen> {
     }
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedLatLng == null) {
@@ -137,18 +136,29 @@ class _AddChurchScreenState extends State<AddChurchScreen> {
       return;
     }
 
-    final newChurch = Church(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+    final churchProvider = context.read<ChurchProvider>();
+
+    final success = await churchProvider.addChurch(
       name: _nameController.text.trim(),
       address: _addressController.text.trim(),
       latitude: _selectedLatLng!.latitude,
       longitude: _selectedLatLng!.longitude,
       description: _descriptionController.text.trim(),
-      imageUrl: _selectedImage != null ? _selectedImage!.path : '',
+      imageFile: _selectedImage,
     );
 
-    context.read<ChurchProvider>().addChurch(newChurch);
-    Navigator.pop(context);
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(churchProvider.errorMessage ?? 'حدث خطأ أثناء الحفظ'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   InputDecoration _inputDecoration(String label, IconData icon) {
@@ -179,6 +189,8 @@ class _AddChurchScreenState extends State<AddChurchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isSaving = context.watch<ChurchProvider>().isSaving;
+
     return Scaffold(
       backgroundColor: backgroundBeige,
       appBar: AppBar(
@@ -206,7 +218,7 @@ class _AddChurchScreenState extends State<AddChurchScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               GestureDetector(
-                onTap: _pickImage,
+                onTap: isSaving ? null : _pickImage,
                 child: Container(
                   height: 160,
                   decoration: BoxDecoration(
@@ -247,6 +259,7 @@ class _AddChurchScreenState extends State<AddChurchScreen> {
               const SizedBox(height: 20),
               TextFormField(
                 controller: _nameController,
+                enabled: !isSaving,
                 decoration: _inputDecoration('اسم الكنيسة', Icons.church),
                 validator:
                     (val) =>
@@ -257,6 +270,7 @@ class _AddChurchScreenState extends State<AddChurchScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _addressController,
+                enabled: !isSaving,
                 decoration: _inputDecoration('العنوان', Icons.location_on),
                 validator:
                     (val) =>
@@ -267,6 +281,7 @@ class _AddChurchScreenState extends State<AddChurchScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
+                enabled: !isSaving,
                 maxLines: 3,
                 decoration: _inputDecoration('الوصف', Icons.description),
               ),
@@ -280,7 +295,7 @@ class _AddChurchScreenState extends State<AddChurchScreen> {
                     borderRadius: BorderRadius.circular(15),
                   ),
                 ),
-                onPressed: _pickLocation,
+                onPressed: isSaving ? null : _pickLocation,
                 icon: const Icon(Icons.map, color: primaryGold),
                 label: Text(
                   _selectedLatLng == null
@@ -302,15 +317,25 @@ class _AddChurchScreenState extends State<AddChurchScreen> {
                   ),
                   elevation: 2,
                 ),
-                onPressed: _submit,
-                child: const Text(
-                  'حفظ الكنيسة',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+                onPressed: isSaving ? null : _submit,
+                child:
+                    isSaving
+                        ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation(Colors.white),
+                          ),
+                        )
+                        : const Text(
+                          'حفظ الكنيسة',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
               ),
             ],
           ),

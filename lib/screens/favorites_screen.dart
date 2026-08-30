@@ -237,7 +237,7 @@ class _FavoriteCard extends StatelessWidget {
               ),
               Positioned(
                 top: 8,
-                left: 8, // تعديل الموضع ليتناسب مع الواجهة العربية
+                left: 8, 
                 child: GestureDetector(
                   onTap: onRemove,
                   child: Container(

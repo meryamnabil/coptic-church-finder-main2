@@ -23,7 +23,6 @@ class LocationProvider extends ChangeNotifier {
     _status = LocationStatus.loading;
     notifyListeners();
 
-    // 1. التحقق من تفعيل خدمة الموقع على الجهاز
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       _status = LocationStatus.serviceDisabled;
@@ -32,7 +31,6 @@ class LocationProvider extends ChangeNotifier {
       return;
     }
 
-    // 2. التحقق من حالة إذن الموقع
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -52,7 +50,6 @@ class LocationProvider extends ChangeNotifier {
       return;
     }
 
-    // 3. الحصول على الموقع الحالي بعد التأكد من الأذونات
     try {
       _currentPosition = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
@@ -66,7 +63,6 @@ class LocationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// فتح إعدادات التطبيق أو الجهاز مباشرة
   Future<void> openSettings() async {
     if (_status == LocationStatus.serviceDisabled) {
       await Geolocator.openLocationSettings();

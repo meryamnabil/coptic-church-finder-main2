@@ -7,12 +7,15 @@ import 'package:geolocator/geolocator.dart';
 import '../providers/church_provider.dart';
 import '../providers/location_provider.dart';
 import '../models/church_model.dart';
+import 'home_screen.dart' show churchMatchesQuery;
 
 const Color primaryGold = Color(0xFFB8965E);
 const Color darkGold = Color(0xFF8C6A3E);
 const Color lightGold = Color(0xFFF5E6D3);
 const Color surfaceColor = Color(0xFFFAFAFA);
 const Color cardShadow = Color(0x1A000000);
+
+enum ChurchSortOption { distance, name }
 
 class MapScreen extends StatefulWidget {
   final Church? selectedChurch;
@@ -37,6 +40,7 @@ class _MapScreenState extends State<MapScreen>
   String _searchQuery = '';
   bool _isSearchFocused = false;
   bool _isLoading = true;
+  ChurchSortOption _sortOption = ChurchSortOption.distance;
 
   @override
   void initState() {
@@ -118,13 +122,8 @@ class _MapScreenState extends State<MapScreen>
 
   List _filteredChurches(List churches) {
     if (_searchQuery.isEmpty) return churches;
-    final q = _searchQuery.toLowerCase();
     return churches
-        .where(
-          (c) =>
-              c.name.toLowerCase().contains(q) ||
-              c.address.toLowerCase().contains(q),
-        )
+        .where((c) => churchMatchesQuery(c as Church, _searchQuery))
         .toList();
   }
 
@@ -236,6 +235,179 @@ class _MapScreenState extends State<MapScreen>
     }
   }
 
+  void _showChurchDetails(dynamic church) {
+    final locationProvider = context.read<LocationProvider>();
+    final dist = _distanceTo(church, locationProvider);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.72,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: ListView(
+                controller: scrollController,
+                padding: EdgeInsets.zero,
+                children: [
+                  _buildSheetHandle(),
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(0),
+                    ),
+                    child:
+                        church.imageUrl.isNotEmpty
+                            ? Image.network(
+                              church.imageUrl,
+                              height: 200,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder:
+                                  (_, __, ___) => _imagePlaceholder(200),
+                            )
+                            : _imagePlaceholder(200),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          church.name,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: darkGold,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _detailRow(
+                          Icons.place_outlined,
+                          'العنوان',
+                          church.address,
+                        ),
+                        if (dist != null) ...[
+                          const SizedBox(height: 12),
+                          _detailRow(
+                            Icons.directions_walk,
+                            'المسافة',
+                            '${_formatDistance(dist)} • حوالي ${_estimateDuration(dist)} بالسيارة',
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        _detailRow(
+                          Icons.my_location,
+                          'الإحداثيات',
+                          '${church.latitude.toStringAsFixed(5)}, ${church.longitude.toStringAsFixed(5)}',
+                        ),
+                        if (church.description.isNotEmpty) ...[
+                          const SizedBox(height: 20),
+                          const Text(
+                            'نبذة عن الكنيسة',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: darkGold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            church.description,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              color: Colors.grey.shade700,
+                              height: 1.6,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            _actionBtn(
+                              Icons.directions,
+                              'الاتجاهات',
+                              primaryGold,
+                              Colors.white,
+                              filled: true,
+                              onTap: () {
+                                Navigator.pop(sheetContext);
+                                _openDirections(church, locationProvider);
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            Consumer<ChurchProvider>(
+                              builder: (context, churchProvider, _) {
+                                final isFav = churchProvider.isFavorite(
+                                  church.id,
+                                );
+                                return _actionBtn(
+                                  isFav
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  'المفضلة',
+                                  isFav
+                                      ? primaryGold.withOpacity(.15)
+                                      : Colors.grey.shade200,
+                                  isFav ? primaryGold : Colors.grey.shade700,
+                                  onTap:
+                                      () => churchProvider.toggleFavorite(
+                                        church.id,
+                                      ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _detailRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: primaryGold),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Set<Marker> _buildMarkers(
     ChurchProvider churchProvider,
     LocationProvider locationProvider,
@@ -305,7 +477,9 @@ class _MapScreenState extends State<MapScreen>
 
         final filtered = _filteredChurches(churchProvider.churches);
 
-        if (pos != null) {
+        if (_sortOption == ChurchSortOption.name) {
+          filtered.sort((a, b) => a.name.compareTo(b.name));
+        } else if (pos != null) {
           filtered.sort((a, b) {
             final distA = _distanceTo(a, locationProvider) ?? double.infinity;
             final distB = _distanceTo(b, locationProvider) ?? double.infinity;
@@ -452,18 +626,89 @@ class _MapScreenState extends State<MapScreen>
                   child: Icon(Icons.close, color: Colors.grey, size: 18),
                 ),
               ),
-            Container(
-              margin: const EdgeInsets.all(8),
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: primaryGold,
-                shape: BoxShape.circle,
+            GestureDetector(
+              onTap: _showSortMenu,
+              child: Container(
+                margin: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: primaryGold,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.tune, color: Colors.white, size: 16),
               ),
-              child: const Icon(Icons.tune, color: Colors.white, size: 16),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  void _showSortMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildSheetHandle(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'رتب حسب',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ),
+              ),
+              _sortOptionTile(
+                icon: Icons.near_me,
+                label: 'الأقرب',
+                value: ChurchSortOption.distance,
+              ),
+              _sortOptionTile(
+                icon: Icons.sort_by_alpha,
+                label: 'الاسم',
+                value: ChurchSortOption.name,
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _sortOptionTile({
+    required IconData icon,
+    required String label,
+    required ChurchSortOption value,
+  }) {
+    final isSelected = _sortOption == value;
+    return ListTile(
+      leading: Icon(icon, color: isSelected ? primaryGold : Colors.grey),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? primaryGold : Colors.black87,
+        ),
+      ),
+      trailing: isSelected ? const Icon(Icons.check, color: primaryGold) : null,
+      onTap: () {
+        setState(() => _sortOption = value);
+        Navigator.pop(context);
+      },
     );
   }
 
@@ -678,7 +923,9 @@ class _MapScreenState extends State<MapScreen>
                       ),
                     ),
                     Text(
-                      'مرتبة حسب الأقرب',
+                      _sortOption == ChurchSortOption.name
+                          ? 'مرتبة أبجديًا'
+                          : 'مرتبة حسب الأقرب',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey.shade500,
@@ -848,19 +1095,11 @@ class _MapScreenState extends State<MapScreen>
                     ),
                     const SizedBox(width: 8),
                     _actionBtn(
-                      Icons.call_outlined,
-                      'اتصال',
-                      Colors.grey.shade200,
-                      Colors.grey.shade700,
-                      onTap: () {},
-                    ),
-                    const SizedBox(width: 8),
-                    _actionBtn(
                       Icons.info_outline,
                       'تفاصيل',
                       Colors.grey.shade200,
                       Colors.grey.shade700,
-                      onTap: () {},
+                      onTap: () => _showChurchDetails(church),
                     ),
                   ],
                 ),

@@ -1,20 +1,29 @@
-import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/church_model.dart';
+
+class ChurchDistance {
+  final Church church;
+  final double distanceInMeters;
+
+  ChurchDistance({required this.church, required this.distanceInMeters});
+}
 
 class ChurchProvider with ChangeNotifier {
   List<Church> _churches = [];
   Future<void>? _loadFuture;
   Church? nearestChurch;
+  String? errorMessage;
+
+  bool isSaving = false;
 
   final Set<String> _favoriteIds = {};
   static const String _favoritesKey = 'favorite_church_ids';
-  static const String _addedChurchesKey = 'added_churches';
 
   List<Church> get churches => _churches;
 
@@ -28,45 +37,87 @@ class ChurchProvider with ChangeNotifier {
   }
 
   Future<void> _loadChurches() async {
-    final jsonString = await rootBundle.loadString('assets/data/churches.json');
-    final jsonList = jsonDecode(jsonString) as List<dynamic>;
+    try {
+      final query = QueryBuilder<ParseObject>(ParseObject('Church'));
+      final response = await query.query();
 
-    _churches =
-        jsonList
-            .map((json) => Church.fromJson(json as Map<String, dynamic>))
-            .toList();
+      if (response.success && response.results != null) {
+        _churches =
+            response.results!
+                .map((object) => Church.fromParse(object as ParseObject))
+                .toList();
+        errorMessage = null;
+      } else {
+        errorMessage = response.error?.message ?? 'تعذر تحميل بيانات الكنائس';
+        _churches = [];
+      }
+    } catch (e) {
+      errorMessage = 'تعذر الاتصال بالسيرفر';
+      _churches = [];
+    }
 
-    await _loadAddedChurches();
     await _loadFavorites();
 
     notifyListeners();
   }
 
-  Future<void> _loadAddedChurches() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedChurches = prefs.getStringList(_addedChurchesKey) ?? [];
-
-    final addedChurches =
-        savedChurches
-            .map(
-              (json) =>
-                  Church.fromJson(jsonDecode(json) as Map<String, dynamic>),
-            )
-            .toList();
-
-    _churches.addAll(addedChurches);
-  }
-
-  Future<void> addChurch(Church church) async {
-    _churches.add(church);
-
-    final prefs = await SharedPreferences.getInstance();
-    final existing = prefs.getStringList(_addedChurchesKey) ?? [];
-
-    existing.add(jsonEncode(church.toJson()));
-    await prefs.setStringList(_addedChurchesKey, existing);
-
+  Future<bool> addChurch({
+    required String name,
+    required String address,
+    required double latitude,
+    required double longitude,
+    required String description,
+    File? imageFile,
+  }) async {
+    isSaving = true;
     notifyListeners();
+
+    try {
+      String imageUrl = '';
+
+      if (imageFile != null) {
+        final parseFile = ParseFile(imageFile);
+        final uploadResponse = await parseFile.save();
+        if (uploadResponse.success) {
+          imageUrl = parseFile.url ?? '';
+        } else {
+          errorMessage = uploadResponse.error?.message ?? 'تعذر رفع الصورة';
+          isSaving = false;
+          notifyListeners();
+          return false;
+        }
+      }
+
+      final churchObject =
+          ParseObject('Church')
+            ..set('name', name)
+            ..set('address', address)
+            ..set('latitude', latitude)
+            ..set('longitude', longitude)
+            ..set('description', description)
+            ..set('imageUrl', imageUrl);
+
+      final response = await churchObject.save();
+
+      if (response.success) {
+        final savedChurch = Church.fromParse(churchObject);
+        _churches.add(savedChurch);
+        errorMessage = null;
+        isSaving = false;
+        notifyListeners();
+        return true;
+      } else {
+        errorMessage = response.error?.message ?? 'تعذر حفظ الكنيسة';
+        isSaving = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      errorMessage = 'تعذر الاتصال بالسيرفر';
+      isSaving = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<void> _loadFavorites() async {
@@ -109,5 +160,28 @@ class ChurchProvider with ChangeNotifier {
 
     nearestChurch = closestChurch;
     notifyListeners();
+  }
+
+  List<ChurchDistance> getNearestChurches(
+    double userLat,
+    double userLng, {
+    int count = 3,
+  }) {
+    final withDistance =
+        _churches.map((church) {
+          final distance = Geolocator.distanceBetween(
+            userLat,
+            userLng,
+            church.latitude,
+            church.longitude,
+          );
+          return ChurchDistance(church: church, distanceInMeters: distance);
+        }).toList();
+
+    withDistance.sort(
+      (a, b) => a.distanceInMeters.compareTo(b.distanceInMeters),
+    );
+
+    return withDistance.take(count).toList();
   }
 }

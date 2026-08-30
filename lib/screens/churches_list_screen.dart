@@ -31,7 +31,6 @@ class _ChurchesListScreenState extends State<ChurchesListScreen> {
       }
     });
 
-    // التحديث الفوري للقائمة عند كتابة أي حرف
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.trim().toLowerCase();

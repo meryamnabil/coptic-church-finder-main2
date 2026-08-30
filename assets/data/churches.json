@@ -1,6 +1,6 @@
 [
   {
-    "id": "alexandria_al_qiddissin",
+    "churchId": "alexandria_al_qiddissin",
     "name": "كنيسة القديسين",
     "address": "شارع خليل حمادة، ميامي، الإسكندرية",
     "latitude": 31.2631918,
@@ -9,7 +9,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "alexandria_saint_mark_cathedral",
+    "churchId": "alexandria_saint_mark_cathedral",
     "name": "الكاتدرائية المرقسية",
     "address": "شارع النبي دانيال، العطارين، الإسكندرية",
     "latitude": 31.1984052,
@@ -18,7 +18,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "alexandria_saint_george",
+    "churchId": "alexandria_saint_george",
     "name": "كنيسة مارجرجس",
     "address": "طريق قناة السويس، الإسكندرية",
     "latitude": 31.2064627,
@@ -27,7 +27,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "alexandria_saint_mary_moses",
+    "churchId": "alexandria_saint_mary_moses",
     "name": "كنيسة العذراء مريم والأنبا موسى الأسود",
     "address": "شارع الكنيسة المارونية، المنشية، الإسكندرية",
     "latitude": 31.1989117,
@@ -36,7 +36,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "aswan_archangel_michael_cathedral",
+    "churchId": "aswan_archangel_michael_cathedral",
     "name": "كاتدرائية الملاك ميخائيل",
     "address": "شارع كورنيش النيل، نجع المحطة، أسوان",
     "latitude": 24.0829025,
@@ -45,7 +45,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "aswan_saint_mary_edfu",
+    "churchId": "aswan_saint_mary_edfu",
     "name": "كنيسة العذراء مريم بإدفو",
     "address": "شارع الجمهورية، إدفو، أسوان",
     "latitude": 24.9764549,
@@ -54,7 +54,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "asyut_isaac_new_assiut",
+    "churchId": "asyut_isaac_new_assiut",
     "name": "كنيسة القديس إسحق",
     "address": "طريق القاهرة - أسوان الصحراوي الشرقي، أسيوط الجديدة",
     "latitude": 27.2819874,
@@ -63,7 +63,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "asyut_saint_john_baptist_qusiyah",
+    "churchId": "asyut_saint_john_baptist_qusiyah",
     "name": "كنيسة يوحنا المعمدان بالقوصية",
     "address": "حارة الجزارين، القوصية، أسيوط",
     "latitude": 27.4396663,
@@ -72,7 +72,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "asyut_archangel_gabriel_qusiyah",
+    "churchId": "asyut_archangel_gabriel_qusiyah",
     "name": "كنيسة الملاك غبريال بالقوصية",
     "address": "حارة الجزارين، القوصية، أسيوط",
     "latitude": 27.4382886,
@@ -81,7 +81,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "beheira_saint_bishoy_monastery",
+    "churchId": "beheira_saint_bishoy_monastery",
     "name": "دير الأنبا بيشوي",
     "address": "طريق الأديرة، وادي النطرون، البحيرة",
     "latitude": 30.3190367,
@@ -90,7 +90,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "beheira_saint_macarius_monastery",
+    "churchId": "beheira_saint_macarius_monastery",
     "name": "دير أبو مقار (الأنبا مقار الكبير)",
     "address": "طريق القاهرة - الإسكندرية الصحراوي، وادي النطرون، البحيرة",
     "latitude": 30.2920777,
@@ -99,7 +99,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "beheira_saint_mary_syrian_monastery",
+    "churchId": "beheira_saint_mary_syrian_monastery",
     "name": "دير السريان (العذراء مريم)",
     "address": "طريق الأديرة، وادي النطرون، البحيرة",
     "latitude": 30.3188437,
@@ -108,7 +108,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "beheira_saint_mark_rashid",
+    "churchId": "beheira_saint_mark_rashid",
     "name": "كنيسة مارمرقس برشيد",
     "address": "شارع الجيش، رشيد، البحيرة",
     "latitude": 31.4049719,
@@ -117,7 +117,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_mercurius_old_cairo",
+    "churchId": "cairo_saint_mercurius_old_cairo",
     "name": "كنيسة أبي سيفين بمصر القديمة",
     "address": "شارع علي سالم، مصر القديمة، القاهرة",
     "latitude": 30.0125111,
@@ -126,7 +126,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_mark_maadi",
+    "churchId": "cairo_saint_mark_maadi",
     "name": "كنيسة مارمرقس بالمعادي",
     "address": "شارع 18، المعادي، القاهرة",
     "latitude": 29.9632489,
@@ -135,7 +135,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_mark_cleopatra",
+    "churchId": "cairo_saint_mark_cleopatra",
     "name": "كنيسة مارمرقس كليوباترا",
     "address": "شارع كليوباترا، مصر الجديدة، القاهرة",
     "latitude": 30.0924362,
@@ -144,7 +144,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_virgin_mary_massarra",
+    "churchId": "cairo_virgin_mary_massarra",
     "name": "كنيسة العذراء مريم بمسرة",
     "address": "حارة ميلاد، مسرة، شبرا، القاهرة",
     "latitude": 30.0732591,
@@ -153,7 +153,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_virgin_mary_pope_cyril",
+    "churchId": "cairo_virgin_mary_pope_cyril",
     "name": "كنيسة العذراء والبابا كيرلس السادس",
     "address": "شارع دولتيان، الساحل، شبرا، القاهرة",
     "latitude": 30.0987292,
@@ -162,7 +162,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_virgin_mary_maadi",
+    "churchId": "cairo_virgin_mary_maadi",
     "name": "كنيسة العذراء مريم بالمعادي",
     "address": "شارع كورنيش النيل، المعادي، القاهرة",
     "latitude": 29.952406,
@@ -171,7 +171,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_mark_new_cairo",
+    "churchId": "cairo_saint_mark_new_cairo",
     "name": "كنيسة مارمرقس بالتجمع الخامس",
     "address": "شارع التسعين، الأندلس، التجمع الخامس، القاهرة الجديدة",
     "latitude": 29.9753459,
@@ -180,7 +180,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_mary_cathedral_zeitoun",
+    "churchId": "cairo_saint_mary_cathedral_zeitoun",
     "name": "كاتدرائية العذراء مريم بالزيتون",
     "address": "شارع طومان باي، الزيتون، القاهرة",
     "latitude": 30.1044928,
@@ -189,7 +189,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_mark_cathedral_azbakeya",
+    "churchId": "cairo_saint_mark_cathedral_azbakeya",
     "name": "الكاتدرائية المرقسية بالأزبكية",
     "address": "شارع الكنيسة المرقسية، الأزبكية، القاهرة",
     "latitude": 30.0571052,
@@ -198,7 +198,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saints_sergius_bacchus",
+    "churchId": "cairo_saints_sergius_bacchus",
     "name": "كنيسة أبو سرجة (سرجيوس وواخس)",
     "address": "حارة القديس باستوروس، مصر القديمة، القاهرة",
     "latitude": 30.0062615,
@@ -207,7 +207,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_george_old_cairo",
+    "churchId": "cairo_saint_george_old_cairo",
     "name": "كنيسة مارجرجس بمصر القديمة",
     "address": "زقاق مارجرجس، مصر القديمة، القاهرة",
     "latitude": 30.0068232,
@@ -216,7 +216,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_mark_cathedral_abbassia",
+    "churchId": "cairo_saint_mark_cathedral_abbassia",
     "name": "الكاتدرائية المرقسية بالعباسية",
     "address": "شارع رمسيس، العباسية، القاهرة",
     "latitude": 30.072329,
@@ -225,7 +225,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saints_peter_paul_abbassia",
+    "churchId": "cairo_saints_peter_paul_abbassia",
     "name": "الكنيسة البطرسية بالعباسية",
     "address": "شارع رمسيس، العباسية، القاهرة",
     "latitude": 30.0717655,
@@ -234,7 +234,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_cathedral_nativity_christ",
+    "churchId": "cairo_cathedral_nativity_christ",
     "name": "كاتدرائية ميلاد المسيح",
     "address": "محور محمد بن زايد الجنوبي، العاصمة الإدارية الجديدة",
     "latitude": 29.981197,
@@ -243,7 +243,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_mary_lady_kneeling",
+    "churchId": "cairo_saint_mary_lady_kneeling",
     "name": "كنيسة العذراء سيدة الراكعة",
     "address": "عطفة أديب ترك، باب الشعرية، القاهرة",
     "latitude": 30.0654463,
@@ -252,7 +252,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_paula_mokattam",
+    "churchId": "cairo_saint_paula_mokattam",
     "name": "كنيسة الأنبا بولا بالمقطم",
     "address": "شارع موسى حنا، منشأة ناصر، بالقرب من المقطم، القاهرة",
     "latitude": 30.0310386,
@@ -261,7 +261,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_simon_mokattam",
+    "churchId": "cairo_saint_simon_mokattam",
     "name": "دير سمعان الخراز بالمقطم",
     "address": "شارع الدير، جبل المقطم، منشأة ناصر، القاهرة",
     "latitude": 30.0306561,
@@ -270,7 +270,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saints_anthony_george_nasr_city",
+    "churchId": "cairo_saints_anthony_george_nasr_city",
     "name": "كنيسة الأنبا أنطونيوس ومارجرجس",
     "address": "شارع مصطفى مختار، مدينة نصر، القاهرة",
     "latitude": 30.1147663,
@@ -279,7 +279,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_athanasius",
+    "churchId": "cairo_saint_athanasius",
     "name": "كنيسة الأنبا أثناسيوس",
     "address": "شارع 12، القاهرة",
     "latitude": 30.011208,
@@ -288,7 +288,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_archangel_michael_khamrawayh",
+    "churchId": "cairo_archangel_michael_khamrawayh",
     "name": "كنيسة الملاك ميخائيل بخمراوية",
     "address": "شارع شيبان، خمراوية، شبرا، القاهرة",
     "latitude": 30.0833746,
@@ -297,7 +297,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_virgin_mary_archangel_shoubra",
+    "churchId": "cairo_virgin_mary_archangel_shoubra",
     "name": "كنيسة العذراء والملاك ميخائيل",
     "address": "شارع عطية الأشقر، الشرابية، بالقرب من شبرا، القاهرة",
     "latitude": 30.0971124,
@@ -306,7 +306,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_george_mataria",
+    "churchId": "cairo_saint_george_mataria",
     "name": "كنيسة مارجرجس بالمطرية",
     "address": "شارع الحرية، عين شمس، بالقرب من المطرية، القاهرة",
     "latitude": 30.1260673,
@@ -315,7 +315,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "cairo_saint_george_manshiyet_sadr",
+    "churchId": "cairo_saint_george_manshiyet_sadr",
     "name": "كنيسة مارجرجس بمنشية الصدر",
     "address": "شارع حدائق القبة، منشية الصدر، القاهرة",
     "latitude": 30.0821706,
@@ -324,7 +324,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "hanging_church_cairo",
+    "churchId": "hanging_church_cairo",
     "name": "الكنيسة المعلقة",
     "address": "كوم غراب، مصر القديمة، القاهرة",
     "latitude": 30.005292,
@@ -333,7 +333,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "giza_virgin_mary_dokki",
+    "churchId": "giza_virgin_mary_dokki",
     "name": "كنيسة العذراء بالدقي",
     "address": "شارع الأنصار، بين السرايات، الدقي، الجيزة",
     "latitude": 30.0335065,
@@ -342,7 +342,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "giza_saint_mary_mark_october",
+    "churchId": "giza_saint_mary_mark_october",
     "name": "كنيسة العذراء ومارمرقس بـ 6 أكتوبر",
     "address": "طريق الخدمة بالمحور المركزي، الحي العاشر، مدينة 6 أكتوبر، الجيزة",
     "latitude": 29.959507,
@@ -351,7 +351,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "giza_virgin_mary_anba_samuel_zayed",
+    "churchId": "giza_virgin_mary_anba_samuel_zayed",
     "name": "كنيسة العذراء والأنبا صموئيل بشيخ زايد",
     "address": "92 شارع الشباب، الحي الخامس، مدينة الشيخ زايد، الجيزة",
     "latitude": 30.0571771,
@@ -360,7 +360,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "giza_saint_mark_hadayek_october",
+    "churchId": "giza_saint_mark_hadayek_october",
     "name": "كنيسة مارمرقس بحدائق أكتوبر",
     "address": "447 شارع الجيش، ابني بيتك 3، حدائق أكتوبر، الجيزة",
     "latitude": 29.9724084,
@@ -369,7 +369,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "giza_anba_antonius_fardous",
+    "churchId": "giza_anba_antonius_fardous",
     "name": "كنيسة الأنبا أنطونيوس بالفردوس",
     "address": "طريق الثورة، حي الفردوس، مدينة 6 أكتوبر، الجيزة",
     "latitude": 29.9310585,
@@ -378,7 +378,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "giza_saint_mary_omraneya",
+    "churchId": "giza_saint_mary_omraneya",
     "name": "كنيسة العذراء بالعلانية (العمرانية)",
     "address": "شارع خاتم المرسلين، العمرانية، الجيزة",
     "latitude": 30.0051063,
@@ -387,7 +387,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "giza_saint_george",
+    "churchId": "giza_saint_george",
     "name": "كنيسة مارجرجس بالجيزة",
     "address": "شارع علي شريف، الجيزة الشرقية، الجيزة",
     "latitude": 30.0192756,
@@ -396,7 +396,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "kafr_el_sheikh_saint_george_desouk",
+    "churchId": "kafr_el_sheikh_saint_george_desouk",
     "name": "كنيسة مارجرجس بدسوق",
     "address": "ميدان المحطة، دسوق، كفر الشيخ",
     "latitude": 31.1318812,
@@ -405,7 +405,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "luxor_virgin_mary_cathedral",
+    "churchId": "luxor_virgin_mary_cathedral",
     "name": "كاتدرائية العذراء مريم بالأقصر",
     "address": "شارع معبد الكرنك، الأقصر",
     "latitude": 25.7054116,
@@ -414,7 +414,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "minya_abu_fana_monastery",
+    "churchId": "minya_abu_fana_monastery",
     "name": "دير أبو فانا (أبو فام)",
     "address": "شارع المدرسة، هور، مركز ملوي، المنيا",
     "latitude": 27.8452619,
@@ -423,7 +423,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "minya_gebar_al_teir",
+    "churchId": "minya_gebar_al_teir",
     "name": "كنيسة العذراء بجبل الطير",
     "address": "شارع الخليفة، جبل الطير، سمالوط، المنيا",
     "latitude": 28.2783204,
@@ -432,7 +432,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "minya_abi_sefein_abnuha",
+    "churchId": "minya_abi_sefein_abnuha",
     "name": "كنيسة أبي سيفين بإبنوها",
     "address": "طريق القاهرة - أسيوط الزراعي، إبنوها، المنيا",
     "latitude": 27.9672406,
@@ -441,7 +441,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "port_said_saint_mark_cathedral",
+    "churchId": "port_said_saint_mark_cathedral",
     "name": "كاتدرائية مارمرقس ببورسعيد",
     "address": "شارع الإمام ابن حنبل، بورفؤاد، بورسعيد",
     "latitude": 31.2310387,
@@ -450,7 +450,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "qalyubia_saint_george_qalyub",
+    "churchId": "qalyubia_saint_george_qalyub",
     "name": "كنيسة مارجرجس بقليوب",
     "address": "شارع يحيى، قليوب، القليوبية",
     "latitude": 30.1788866,
@@ -459,7 +459,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "qena_saint_george_rahmaniya",
+    "churchId": "qena_saint_george_rahmaniya",
     "name": "كنيسة مارجرجس بالرحمانية قبلي",
     "address": "طريق الشعانية - الصياد، الرحمانية قبلي، قنا",
     "latitude": 26.0674612,
@@ -468,7 +468,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "qena_archangel_michael_rahmaniya",
+    "churchId": "qena_archangel_michael_rahmaniya",
     "name": "كاتدرائية الملاك ميخائيل بالرحمانية قبلي",
     "address": "شارع المربع، الرحمانية قبلي، قنا",
     "latitude": 26.0657991,
@@ -477,7 +477,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "red_sea_coptic_church_hurghada",
+    "churchId": "red_sea_coptic_church_hurghada",
     "name": "الكنيسة القبطية بالدهار (الغردقة)",
     "address": "شارع عبد العزيز فهمي، الدهار، الغردقة، البحر الأحمر",
     "latitude": 27.2543275,
@@ -486,7 +486,7 @@
     "imageUrl": "assets/images/Logo.png"
   },
   {
-    "id": "south_sinai_heavenly_cathedral",
+    "churchId": "south_sinai_heavenly_cathedral",
     "name": "الكاتدرائية السمائية بشرم الشيخ",
     "address": "شارع المساكن البدوية، حي النور، شرم الشيخ، جنوب سيناء",
     "latitude": 27.8879442,

@@ -4,12 +4,22 @@ import 'package:provider/provider.dart';
 import 'providers/church_provider.dart';
 import 'providers/location_provider.dart';
 import 'screens/splash_screen.dart';
+import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
+
 
 const Color primaryGold = Color(0xFFB8965E);
 const Color backgroundBeige = Color(0xFFF5EFE6);
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Parse().initialize(
+    '7BM3voBPPv83gq086cx2zJAOLiMqrPdd8V56Igf3',
+    'https://parseapi.back4app.com/',
+    clientKey: 'qlVbw3IUaIPZhSk9DpUKLfuJJDhpkWwMIk7wPkXr',
+    autoSendSessionId: true,
+  );
+
   runApp(const MyApp());
 }
 
